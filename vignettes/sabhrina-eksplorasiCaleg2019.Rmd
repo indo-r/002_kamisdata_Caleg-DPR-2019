@@ -16,10 +16,10 @@ library(janitor)
 
 #### Baca Data Caleg 2019
 
-Blok kode berikut adalah kode yang digunakan untuk membaca data dari repositori indo-r. Ada fungsi menarik yang berbeda dari base R yakni `readr::read_delim` yang lebih efisien daripada `utils::read.delim`yang sudah ada di R dasar dan fungsi `janitor::clean_names()` yang membersihkan judul kolom dengan sangat cepat. Buat yang belum tahu `janitor` kayak saya, biasanya bersihin colnames pake `base::gsub` dan kawan-kawan `grep`nya. Sedih banget deh, tapi jadi belajar olah data jenis string di R.
+Blok kode berikut adalah kode yang digunakan untuk membaca data dari repositori indo-r. Ada fungsi menarik yang berbeda dari base R yakni `readr::read_delim` yang lebih efisien daripada `utils::read.delim`yang sudah ada di R dasar dan fungsi `janitor::clean_names()` yang membersihkan judul kolom dengan sangat cepat. Buat yang belum tahu `janitor` kayak saya, biasanya bersihin colnames pake `base::gsub` dan kawan-kawan `grep`nya.
 
 ```{r bacaData, message=FALSE}
-download.file("https://raw.githubusercontent.com/seuriously/caleg_dpr_2019/master/caleg_dpr.csv", destfile = "input/caleg_dpr_2019.csv")
+download.file("https://raw.githubusercontent.com/seuriously/caleg_dpr_2019/master/caleg_dpr.csv", destfile = "input/caleg_dpr_2019.csv") # saya membuat folder input untuk semua data masuk yang akan diproses untuk memisahkan yang raw dengan yang sudah ditransformasi 
 
 caleg<-read_delim("input/caleg_dpr_2019.csv", delim = "|", na = c("", "NA", "-"))
 glimpse(caleg)
@@ -101,7 +101,7 @@ caleg2019_clean<-caleg_2019[complete.cases(caleg_2019),]
 dim(caleg2019_clean)
 ```
 
-Hanya 403 caleg yang memberikan informasi lengkap! Sebagian besar partai memiliki di bawah 20% calegnya mengisi form dengan lengkap, namun perlu diperhatikan bahwa ini masih tergantung kepada seberapa bersih data dibaca dari website KPU; siapa tahu ada kesalahan dalam pembacaan data
+Hanya 403 caleg yang memberikan informasi lengkap! Sebagian besar partai memiliki di bawah 20% calegnya mengisi form dengan lengkap, namun perlu diperhatikan bahwa ini masih tergantung kepada seberapa bersih data dibaca dari website KPU; **siapa tahu ada kesalahan dalam pembacaan data**
 
 ```{r siapaSerius}
 ## Mau lihat dari partai mana caleg2 serius ini
@@ -162,7 +162,7 @@ Ternyata caleg terbanyak adalah caleg Jawa Barat dan Jawa Timur berpendidikan S2
 
 #### Motivasi Para Caleg
 
-Yang menarik lagi untuk dilihat adalah motivasi para caleg. Kata yang paling banyak digunakan dapat ditampilkan dalam awan kata.
+Nah, sebagian besar caleg kita kan berpendidikan tinggi nih, mau tahu dong yang menjadi motivasi para caleg kita apa. Kata yang paling banyak digunakan dalam menulis motivasi dapat ditampilkan dalam awan kata.
 
 ```{r analisisKata, message=FALSE}
 library(tm)
@@ -173,7 +173,7 @@ library(RColorBrewer)
 # Buat file katanya
 calegMotivasi<-caleg2019_clean %>% select(motivasi)
 calegMotivasi<-Corpus(VectorSource(calegMotivasi))
-inspect(calegMotivasi)
+# inspect(calegMotivasi) (untuk melihat keseluruhan teks yang diubah menjadi corpus)
 
 # membersihkan korpus
 toSpace <- content_transformer(function (x , pattern ) gsub(pattern, " ", x))
@@ -181,15 +181,15 @@ calegMotivasi <- tm_map(calegMotivasi, toSpace, "/")
 calegMotivasi <- tm_map(calegMotivasi, toSpace, "@")
 calegMotivasi <- tm_map(calegMotivasi, toSpace, "\\|")
 
-# Convert the text to lower case
+# mengubah teks ke lower case
 calegMotivasi <- tm_map(calegMotivasi, content_transformer(tolower))
-# Remove numbers
+# menghilangkan angka
 calegMotivasi <- tm_map(calegMotivasi, removeNumbers)
-# Remove indonesian common stopwords
+# menghilangkan kata-kata yang terlalu umum
 calegMotivasi <- tm_map(calegMotivasi, removeWords, c("di", "ke", "dari", "dan", "karena", "maka", "untuk","yang", "ada", "agar", "supaya", "ini", "itu", "pada", "turut", "ikut", "ingin", "dalam", "melalui", "sebagai", "dengan", "bagi", "saya", "kepada", "serta"))
-# Remove punctuations
+# menghilangkan tanda baca
 calegMotivasi <- tm_map(calegMotivasi, removePunctuation)
-# Eliminate extra white spaces
+# menghilangkan ruang spasi ekstra
 calegMotivasi <- tm_map(calegMotivasi, stripWhitespace)
 # Text stemming
 calegMotivasi <- tm_map(calegMotivasi, stemDocument)
@@ -210,7 +210,7 @@ wordcloud(words = d$word, freq = d$freq, min.freq = 30,
 ## tentu saja indonesia banyak dikatakan, apalagi masyarakat dan rakyat karena mereka mendulang suara. bagaimana jika kata2 yang terlalu umum dalam data set dihilangkan?
 calegMotivasi <- tm_map(calegMotivasi, removeWords, c("indonesia","masyarakat","rakyat", "negara","bangsa"))
 motivasi2 <- TermDocumentMatrix(calegMotivasi)
-m2 <- as.matrix(motivasi)
+m2 <- as.matrix(motivasi2)
 v2 <- sort(rowSums(m2),decreasing=TRUE)
 d2 <- data.frame(word = names(v2),freq=v2)
 
@@ -220,4 +220,8 @@ wordcloud(words = d2$word, freq = d2$freq, min.freq = 25,
 
 ```
 
-```{}
+Kata yang paling banyak muncul setelah kata "indonesia", "masyarakat", "rakyat", "negara", dan "bangsa" dihilangkan ternyata adalah "politik", disusul "partai" dan "prabowo". Mungkin konteks penggunaan kata akan lebih menarik dilihat dengan membaca motivasi caleg langsung.
+
+```{r jumlahKata}
+head(d2,10)
+```
